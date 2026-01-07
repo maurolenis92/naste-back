@@ -1,0 +1,356 @@
+{
+  "info": {
+    "name": "Naste API",
+    "_postman_id": "naste-api-collection",
+    "description": "Colección completa de endpoints para el sistema de facturación e inventario Naste",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{cognito_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "cognito_token",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health & Info",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/health",
+              "host": ["{{base_url}}"],
+              "path": ["health"]
+            },
+            "description": "Health check endpoint (sin autenticación)"
+          },
+          "response": []
+        },
+        {
+          "name": "Root Info",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/",
+              "host": ["{{base_url}}"],
+              "path": [""]
+            },
+            "description": "Información básica de la API (sin autenticación)"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Products",
+      "item": [
+        {
+          "name": "List Products",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/products?isActive=true",
+              "host": ["{{base_url}}"],
+              "path": ["api", "products"],
+              "query": [
+                {
+                  "key": "isActive",
+                  "value": "true",
+                  "description": "Filtrar por productos activos (opcional)"
+                }
+              ]
+            },
+            "description": "Lista todos los productos. Requiere autenticación."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Product by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/products/:id",
+              "host": ["{{base_url}}"],
+              "path": ["api", "products", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "",
+                  "description": "UUID del producto"
+                }
+              ]
+            },
+            "description": "Obtiene un producto por ID. Requiere autenticación."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Product",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"VELA001\",\n  \"description\": \"Vela aromática de lavanda\",\n  \"price\": 25000,\n  \"stock\": 100,\n  \"imageUrl\": \"https://example.com/vela001.jpg\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/products",
+              "host": ["{{base_url}}"],
+              "path": ["api", "products"]
+            },
+            "description": "Crea un nuevo producto. Requiere autenticación."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Product",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"description\": \"Vela aromática de lavanda - Edición especial\",\n  \"price\": 30000,\n  \"stock\": 150\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/products/:id",
+              "host": ["{{base_url}}"],
+              "path": ["api", "products", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "",
+                  "description": "UUID del producto"
+                }
+              ]
+            },
+            "description": "Actualiza un producto existente. Requiere autenticación."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Product (Soft)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/products/:id",
+              "host": ["{{base_url}}"],
+              "path": ["api", "products", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "",
+                  "description": "UUID del producto"
+                }
+              ]
+            },
+            "description": "Desactiva un producto (soft delete). Requiere autenticación."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Invoices",
+      "item": [
+        {
+          "name": "List Invoices",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/invoices?status=PENDING",
+              "host": ["{{base_url}}"],
+              "path": ["api", "invoices"],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "PENDING",
+                  "description": "PENDING | PAID | DELIVERED | CANCELLED",
+                  "disabled": true
+                },
+                {
+                  "key": "startDate",
+                  "value": "2026-01-01T00:00:00Z",
+                  "description": "Fecha inicio (ISO 8601)",
+                  "disabled": true
+                },
+                {
+                  "key": "endDate",
+                  "value": "2026-12-31T23:59:59Z",
+                  "description": "Fecha fin (ISO 8601)",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Lista todas las facturas con filtros opcionales. Requiere autenticación."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Invoice by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/invoices/:id",
+              "host": ["{{base_url}}"],
+              "path": ["api", "invoices", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "",
+                  "description": "UUID de la factura"
+                }
+              ]
+            },
+            "description": "Obtiene una factura por ID (incluye items y productos). Requiere autenticación."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Invoice",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"PENDING\",\n  \"origin\": \"INSTAGRAM\",\n  \"paymentMethod\": \"TRANSFER\",\n  \"customerName\": \"Juan Pérez\",\n  \"customerIdDoc\": \"123456789\",\n  \"customerPhone\": \"+57300123456\",\n  \"customerEmail\": \"juan@example.com\",\n  \"city\": \"Bogotá\",\n  \"neighborhood\": \"Chapinero\",\n  \"address\": \"Calle 123 #45-67\",\n  \"deliveryDate\": \"2026-01-08T00:00:00Z\",\n  \"items\": [\n    {\n      \"productId\": \"uuid-del-producto\",\n      \"description\": \"Vela aromática de lavanda\",\n      \"quantity\": 3,\n      \"unitPrice\": 25000\n    },\n    {\n      \"description\": \"Producto personalizado\",\n      \"quantity\": 1,\n      \"unitPrice\": 50000\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/invoices",
+              "host": ["{{base_url}}"],
+              "path": ["api", "invoices"]
+            },
+            "description": "Crea una nueva factura. El createdById se obtiene automáticamente del token. Requiere autenticación."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Invoice",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customerName\": \"Juan Pérez Actualizado\",\n  \"customerPhone\": \"+57300999999\",\n  \"address\": \"Calle 456 #78-90\",\n  \"items\": [\n    {\n      \"productId\": \"uuid-del-producto\",\n      \"description\": \"Vela aromática de lavanda\",\n      \"quantity\": 5,\n      \"unitPrice\": 25000\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/invoices/:id",
+              "host": ["{{base_url}}"],
+              "path": ["api", "invoices", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "",
+                  "description": "UUID de la factura"
+                }
+              ]
+            },
+            "description": "Actualiza una factura existente. Si se actualizan items, recalcula stock. Requiere autenticación."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Invoice Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"DELIVERED\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/invoices/:id/status",
+              "host": ["{{base_url}}"],
+              "path": ["api", "invoices", ":id", "status"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "",
+                  "description": "UUID de la factura"
+                }
+              ]
+            },
+            "description": "Cambia solo el estado de la factura. Status: PENDING | PAID | DELIVERED | CANCELLED. Requiere autenticación."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Invoice",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/invoices/:id",
+              "host": ["{{base_url}}"],
+              "path": ["api", "invoices", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "",
+                  "description": "UUID de la factura"
+                }
+              ]
+            },
+            "description": "Elimina una factura y restaura el stock. Requiere autenticación."
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}
