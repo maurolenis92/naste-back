@@ -11,6 +11,7 @@ export const createProductSchema = z.object({
       .int()
       .nonnegative('Stock must be non-negative')
       .default(0),
+    imageBase64: z.base64().optional(),
   }),
 });
 
@@ -24,6 +25,7 @@ export const updateProductSchema = z.object({
     description: z.string().min(1).optional(),
     price: z.number().positive().optional(),
     stock: z.number().int().nonnegative().optional(),
+    imageBase64: z.base64().optional(),
     isActive: z.boolean().optional(),
   }),
 });
