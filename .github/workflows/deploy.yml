@@ -2,15 +2,18 @@ name: Deploy Backend to Lightsail
 
 on:
   push:
-    branches: [master] # O 'main', revisa cómo se llama tu rama
+    branches:
+      - main
+      - master
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
 
-      # 1. Copiamos los archivos al servidor
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
       - name: Copy files via SCP
         uses: appleboy/scp-action@master
         with:
@@ -19,9 +22,8 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           source: '.'
           target: '/home/ubuntu/api'
-          rm: true # Borra lo viejo antes de copiar (limpieza)
+          rm: true # Esto limpia la carpeta antes de copiar, por eso el .env desaparecía
 
-      # 2. Nos conectamos para instalar y reiniciar
       - name: Install, Build & Restart PM2
         uses: appleboy/ssh-action@master
         with:
@@ -29,33 +31,35 @@ jobs:
           username: ${{ secrets.USERNAME }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            # Entrar a la carpeta
             cd /home/ubuntu/api
 
-            # 1. Instalar dependencias
+            # 1. RESTAURAR EL ENTORNO
+            # Creamos el .env usando el Secret de GitHub
+            echo "${{ secrets.ENV_FILE }}" > .env
+            echo "✅ Archivo .env restaurado desde Secrets"
+
+            # 2. INSTALAR DEPENDENCIAS
+            # npm install ahora funcionará bien gracias a la memoria Swap que creamos
             npm install
 
-            # 2. Cargar variables de entorno (con verificación de ruta)
-            if [ -f .env ]; then
-              export $(grep -v '^#' .env | xargs)
-              echo "✅ Archivo .env cargado"
-            else
-              echo "❌ ERROR: Archivo .env no encontrado en $(pwd)"
-              exit 1
-            fi
+            # 3. CARGAR VARIABLES PARA COMANDOS DE PRISMA/BUILD
+            export $(grep -v '^#' .env | xargs)
 
-            # 3. Prisma y Build (Ahora con las variables cargadas)
+            # 4. PRISMA: GENERAR Y MIGRAR
             echo "🔧 Generating Prisma Client..."
             npx prisma generate
 
-            echo "🗄️ Running migrations..."
+            echo "🗄️ Running database migrations..."
             npx prisma migrate deploy
 
+            # 5. COMPILAR TYPESCRIPT
             echo "🔨 Building TypeScript..."
-            # Usamos skipLibCheck por si hay errores en carpetas externas
             npm run build
 
-            # 4. Reiniciar PM2
+            # 6. REINICIAR SERVICIO
+            # --update-env asegura que PM2 tome las nuevas variables del .env
+            echo "♻️ Restarting backend..."
             pm2 restart api --update-env || pm2 start dist/index.js --name "api"
 
-            echo "✅ Despliegue completado con éxito"
+            echo "✅ Despliegue completado con éxito!"
+            pm2 status
