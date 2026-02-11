@@ -22,7 +22,7 @@ jobs:
           rm: true # Borra lo viejo antes de copiar (limpieza)
 
       # 2. Nos conectamos para instalar y reiniciar
-      - name: Install & Restart PM2
+      - name: Install, Build & Restart PM2
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.HOST }}
@@ -30,7 +30,8 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             cd /home/ubuntu/api
-            # Instalamos dependencias
-            npm install --production
-            # Reiniciamos el proceso (Asumiendo que se llama 'api')
-            pm2 restart api || pm2 start index.js --name "api"
+            npm install
+            npx prisma generate
+            npm run build
+            # Usamos --update-env para que tome cambios en el .env si los hay
+            pm2 restart api --update-env || pm2 start dist/index.js --name "api"
