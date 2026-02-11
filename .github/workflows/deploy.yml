@@ -1,0 +1,36 @@
+name: Deploy Backend to Lightsail
+
+on:
+  push:
+    branches: [master] # O 'main', revisa cómo se llama tu rama
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      # 1. Copiamos los archivos al servidor
+      - name: Copy files via SCP
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: '.'
+          target: '/home/ubuntu/api'
+          rm: true # Borra lo viejo antes de copiar (limpieza)
+
+      # 2. Nos conectamos para instalar y reiniciar
+      - name: Install & Restart PM2
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd /home/ubuntu/api
+            # Instalamos dependencias
+            npm install --production
+            # Reiniciamos el proceso (Asumiendo que se llama 'api')
+            pm2 restart api || pm2 start index.js --name "api"

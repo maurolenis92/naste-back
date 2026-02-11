@@ -9,6 +9,7 @@ import {
 import { AppError } from '../middlewares/errorHandler';
 import { productService } from './product.service';
 import { InvoiceStatus } from '@prisma/client';
+import { PaginatedResponse, calculatePagination } from '../types/pagination';
 
 export class InvoiceService {
   // Calcular subtotal de un item
@@ -24,29 +25,67 @@ export class InvoiceService {
     );
   }
 
-  // Listar facturas con filtros
-  async listInvoices(filters?: ListInvoicesQuery) {
+  // Listar facturas con filtros y paginación
+  async listInvoices(
+    filters?: ListInvoicesQuery
+  ): Promise<PaginatedResponse<any>> {
+    const page = Number(filters?.page) || 1;
+    const pageSize = Number(filters?.pageSize) || 10;
+    const skip = (page - 1) * pageSize;
+
     const where: any = {};
 
+    // Filtro por estado
     if (filters?.status) {
       where.status = filters.status;
     }
 
+    // Filtro por fechas
     if (filters?.startDate || filters?.endDate) {
       where.invoiceDate = {};
-      if (filters.startDate) {
+      if (filters?.startDate) {
         where.invoiceDate.gte = new Date(filters.startDate);
       }
-      if (filters.endDate) {
+      if (filters?.endDate) {
         where.invoiceDate.lte = new Date(filters.endDate);
       }
     }
 
+    // Filtro por usuario creador
     if (filters?.createdById) {
       where.createdById = filters.createdById;
     }
 
-    return prisma.invoice.findMany({
+    // Filtro por origen
+    if (filters?.origin) {
+      where.origin = filters.origin;
+    }
+
+    // Filtro por método de pago
+    if (filters?.paymentMethod) {
+      where.paymentMethod = filters.paymentMethod;
+    }
+
+    // Filtro por ciudad
+    if (filters?.city) {
+      where.city = { contains: filters.city, mode: 'insensitive' };
+    }
+
+    // Búsqueda general
+    if (filters?.search) {
+      where.OR = [
+        { customerName: { contains: filters.search, mode: 'insensitive' } },
+        { customerIdDoc: { contains: filters.search, mode: 'insensitive' } },
+        { address: { contains: filters.search, mode: 'insensitive' } },
+        { neighborhood: { contains: filters.search, mode: 'insensitive' } },
+      ];
+    }
+
+    // Obtener total de items
+    const totalItems = await prisma.invoice.count({ where });
+
+    // Obtener items paginados
+    const data = await prisma.invoice.findMany({
       where,
       include: {
         items: {
@@ -63,7 +102,17 @@ export class InvoiceService {
         },
       },
       orderBy: { invoiceDate: 'desc' },
+      skip,
+      take: pageSize,
     });
+
+    // Calcular metadata de paginación
+    const pagination = calculatePagination(totalItems, page, pageSize);
+
+    return {
+      data,
+      pagination,
+    };
   }
 
   // Obtener factura por ID

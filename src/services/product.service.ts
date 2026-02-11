@@ -5,19 +5,61 @@ import {
   ListProductsQuery,
 } from '../schemas/product.schema';
 import { AppError } from '../middlewares/errorHandler';
+import { PaginatedResponse, calculatePagination } from '../types/pagination';
 
 export class ProductService {
-  // Listar productos
-  async listProducts(filters?: ListProductsQuery) {
-    const where =
-      filters?.isActive !== undefined 
-        ? { isActive: (filters.isActive as any) === 'true' || filters.isActive === true } 
-        : {};
+  // Listar productos con paginación y filtros
+  async listProducts(
+    filters?: ListProductsQuery
+  ): Promise<PaginatedResponse<any>> {
+    const page = Number(filters?.page) || 1;
+    const pageSize = Number(filters?.pageSize) || 10;
+    const skip = (page - 1) * pageSize;
 
-    return prisma.product.findMany({
+    const where: any = {};
+
+    // Filtro por estado activo
+    if (filters?.isActive !== undefined) {
+      where.isActive = Boolean(filters.isActive);
+    }
+
+    // Búsqueda por código o descripción
+    if (filters?.search) {
+      where.OR = [
+        { code: { contains: filters.search, mode: 'insensitive' } },
+        { description: { contains: filters.search, mode: 'insensitive' } },
+      ];
+    }
+
+    // Filtros por rango de precio
+    if (filters?.minPrice !== undefined || filters?.maxPrice !== undefined) {
+      where.price = {};
+      if (filters.minPrice !== undefined) {
+        where.price.gte = Number(filters.minPrice);
+      }
+      if (filters.maxPrice !== undefined) {
+        where.price.lte = Number(filters.maxPrice);
+      }
+    }
+
+    // Obtener total de items
+    const totalItems = await prisma.product.count({ where });
+
+    // Obtener items paginados
+    const data = await prisma.product.findMany({
       where,
       orderBy: { createdAt: 'desc' },
+      skip,
+      take: pageSize,
     });
+
+    // Calcular metadata de paginación
+    const pagination = calculatePagination(totalItems, page, pageSize);
+
+    return {
+      data,
+      pagination,
+    };
   }
 
   // Obtener producto por ID

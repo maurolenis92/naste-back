@@ -83,10 +83,25 @@ export const deleteInvoiceSchema = z.object({
 // Schema para query de listado
 export const listInvoicesSchema = z.object({
   query: z.object({
-    status: z.enum(InvoiceStatus).optional(),
-    startDate: z.iso.datetime().optional(),
-    endDate: z.iso.datetime().optional(),
-    createdById: z.uuid().optional(),
+    // Filtros
+    status: z.nativeEnum(InvoiceStatus).optional(),
+    startDate: z.string().optional(),
+    endDate: z.string().optional(),
+    createdById: z.string().uuid().optional(),
+    search: z.string().optional(), // Búsqueda por cliente, documento o dirección
+    origin: z.nativeEnum(InvoiceOrigin).optional(),
+    paymentMethod: z.nativeEnum(PaymentMethod).optional(),
+    city: z.string().optional(),
+
+    // Paginación
+    page: z
+      .string()
+      .optional()
+      .transform(val => (val ? parseInt(val) : 1)),
+    pageSize: z
+      .string()
+      .optional()
+      .transform(val => (val ? parseInt(val) : 10)),
   }),
 });
 

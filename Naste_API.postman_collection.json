@@ -2,7 +2,7 @@
   "info": {
     "name": "Naste API",
     "_postman_id": "naste-api-collection",
-    "description": "Colección completa de endpoints para el sistema de facturación e inventario Naste",
+    "description": "Colección completa de endpoints para el sistema de facturación e inventario Naste.\n\n## Nuevas Características:\n- ✅ Paginación en listados de productos y facturas\n- ✅ Filtros avanzados (búsqueda, rangos, múltiples criterios)\n- ✅ Tests automatizados para validar paginación\n- ✅ Ejemplos de uso con diferentes combinaciones de filtros\n\n## Endpoints con Paginación:\n- Products: page, pageSize, search, minPrice, maxPrice, isActive\n- Invoices: page, pageSize, search, status, origin, paymentMethod, city, dateRange, createdById\n\n## Formato de Respuesta:\n```json\n{\n  \"data\": [...],\n  \"pagination\": {\n    \"currentPage\": 1,\n    \"pageSize\": 10,\n    \"totalItems\": 150,\n    \"totalPages\": 15,\n    \"hasNextPage\": true,\n    \"hasPreviousPage\": false,\n    \"nextPage\": 2,\n    \"previousPage\": null\n  }\n}\n```\n\nVer documentación completa en: PAGINATION_AND_FILTERS.md",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -25,6 +25,18 @@
       "key": "cognito_token",
       "value": "",
       "type": "string"
+    },
+    {
+      "key": "current_page",
+      "value": "1",
+      "type": "string",
+      "description": "Variable para navegación de páginas"
+    },
+    {
+      "key": "page_size",
+      "value": "10",
+      "type": "string",
+      "description": "Tamaño de página predeterminado"
     }
   ],
   "item": [
@@ -71,23 +83,175 @@
       "name": "Products",
       "item": [
         {
-          "name": "List Products",
+          "name": "List Products (Paginated)",
           "request": {
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base_url}}/api/products?isActive=true",
+              "raw": "{{base_url}}/api/products?page=1&pageSize=10&isActive=true&search=&minPrice=&maxPrice=",
               "host": ["{{base_url}}"],
               "path": ["api", "products"],
               "query": [
                 {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Número de página (default: 1)"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "10",
+                  "description": "Items por página (default: 10)"
+                },
+                {
                   "key": "isActive",
                   "value": "true",
-                  "description": "Filtrar por productos activos (opcional)"
+                  "description": "Filtrar por productos activos: true/false (opcional)"
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "description": "Buscar por código o descripción (opcional)",
+                  "disabled": true
+                },
+                {
+                  "key": "minPrice",
+                  "value": "",
+                  "description": "Precio mínimo (opcional)",
+                  "disabled": true
+                },
+                {
+                  "key": "maxPrice",
+                  "value": "",
+                  "description": "Precio máximo (opcional)",
+                  "disabled": true
                 }
               ]
             },
-            "description": "Lista todos los productos. Requiere autenticación."
+            "description": "Lista productos con paginación y filtros. Retorna data + pagination metadata. Requiere autenticación."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response has pagination structure\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('data');",
+                  "    pm.expect(jsonData).to.have.property('pagination');",
+                  "    pm.expect(jsonData.pagination).to.have.all.keys(",
+                  "        'currentPage', 'pageSize', 'totalItems', 'totalPages',",
+                  "        'hasNextPage', 'hasPreviousPage', 'nextPage', 'previousPage'",
+                  "    );",
+                  "});",
+                  "",
+                  "pm.test(\"Data is an array\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data).to.be.an('array');",
+                  "});",
+                  "",
+                  "pm.test(\"Page size is respected\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    const pageSize = jsonData.pagination.pageSize;",
+                  "    pm.expect(jsonData.data.length).to.be.at.most(pageSize);",
+                  "});",
+                  "",
+                  "pm.test(\"Pagination logic is correct\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    const p = jsonData.pagination;",
+                  "    const expectedPages = Math.ceil(p.totalItems / p.pageSize);",
+                  "    pm.expect(p.totalPages).to.equal(expectedPages);",
+                  "    ",
+                  "    if (p.currentPage > 1) {",
+                  "        pm.expect(p.hasPreviousPage).to.be.true;",
+                  "        pm.expect(p.previousPage).to.equal(p.currentPage - 1);",
+                  "    } else {",
+                  "        pm.expect(p.hasPreviousPage).to.be.false;",
+                  "        pm.expect(p.previousPage).to.be.null;",
+                  "    }",
+                  "    ",
+                  "    if (p.currentPage < p.totalPages) {",
+                  "        pm.expect(p.hasNextPage).to.be.true;",
+                  "        pm.expect(p.nextPage).to.equal(p.currentPage + 1);",
+                  "    } else {",
+                  "        pm.expect(p.hasNextPage).to.be.false;",
+                  "        pm.expect(p.nextPage).to.be.null;",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Search Products",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/products?search=vela&page=1&pageSize=20",
+              "host": ["{{base_url}}"],
+              "path": ["api", "products"],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "vela",
+                  "description": "Término de búsqueda"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "Busca productos por código o descripción con paginación."
+          },
+          "response": []
+        },
+        {
+          "name": "Filter Products by Price Range",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/products?minPrice=10000&maxPrice=50000&isActive=true&page=1&pageSize=15",
+              "host": ["{{base_url}}"],
+              "path": ["api", "products"],
+              "query": [
+                {
+                  "key": "minPrice",
+                  "value": "10000",
+                  "description": "Precio mínimo"
+                },
+                {
+                  "key": "maxPrice",
+                  "value": "50000",
+                  "description": "Precio máximo"
+                },
+                {
+                  "key": "isActive",
+                  "value": "true"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "15"
+                }
+              ]
+            },
+            "description": "Filtra productos por rango de precios con paginación."
           },
           "response": []
         },
@@ -192,36 +356,243 @@
       "name": "Invoices",
       "item": [
         {
-          "name": "List Invoices",
+          "name": "List Invoices (Paginated)",
           "request": {
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base_url}}/api/invoices?status=PENDING",
+              "raw": "{{base_url}}/api/invoices?page=1&pageSize=10&status=&search=&origin=&paymentMethod=&city=&startDate=&endDate=&createdById=",
+              "host": ["{{base_url}}"],
+              "path": ["api", "invoices"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Número de página (default: 1)"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "10",
+                  "description": "Items por página (default: 10)"
+                },
+                {
+                  "key": "status",
+                  "value": "",
+                  "description": "PENDING | PAID | DELIVERED | CANCELLED",
+                  "disabled": true
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "description": "Buscar en cliente, documento, dirección o barrio",
+                  "disabled": true
+                },
+                {
+                  "key": "origin",
+                  "value": "",
+                  "description": "STORE | PHONE_ORDER | WEB_ORDER",
+                  "disabled": true
+                },
+                {
+                  "key": "paymentMethod",
+                  "value": "",
+                  "description": "CASH | CARD | TRANSFER | NEQUI | DAVIPLATA",
+                  "disabled": true
+                },
+                {
+                  "key": "city",
+                  "value": "",
+                  "description": "Filtrar por ciudad",
+                  "disabled": true
+                },
+                {
+                  "key": "startDate",
+                  "value": "",
+                  "description": "Fecha inicio (YYYY-MM-DD o ISO 8601)",
+                  "disabled": true
+                },
+                {
+                  "key": "endDate",
+                  "value": "",
+                  "description": "Fecha fin (YYYY-MM-DD o ISO 8601)",
+                  "disabled": true
+                },
+                {
+                  "key": "createdById",
+                  "value": "",
+                  "description": "UUID del usuario que creó la factura",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Lista facturas con paginación y filtros avanzados. Retorna data + pagination metadata. Requiere autenticación."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response has pagination structure\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('data');",
+                  "    pm.expect(jsonData).to.have.property('pagination');",
+                  "});",
+                  "",
+                  "pm.test(\"Data contains invoice items\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data).to.be.an('array');",
+                  "    if (jsonData.data.length > 0) {",
+                  "        pm.expect(jsonData.data[0]).to.have.property('items');",
+                  "        pm.expect(jsonData.data[0]).to.have.property('createdBy');",
+                  "    }",
+                  "});",
+                  "",
+                  "pm.test(\"Pagination metadata is valid\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    const p = jsonData.pagination;",
+                  "    pm.expect(p.currentPage).to.be.a('number');",
+                  "    pm.expect(p.pageSize).to.be.a('number');",
+                  "    pm.expect(p.totalItems).to.be.a('number');",
+                  "    pm.expect(p.totalPages).to.be.a('number');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Filter Invoices by Status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/invoices?status=PENDING&page=1&pageSize=15",
               "host": ["{{base_url}}"],
               "path": ["api", "invoices"],
               "query": [
                 {
                   "key": "status",
                   "value": "PENDING",
-                  "description": "PENDING | PAID | DELIVERED | CANCELLED",
-                  "disabled": true
+                  "description": "Estado de la factura"
                 },
                 {
-                  "key": "startDate",
-                  "value": "2026-01-01T00:00:00Z",
-                  "description": "Fecha inicio (ISO 8601)",
-                  "disabled": true
+                  "key": "page",
+                  "value": "1"
                 },
                 {
-                  "key": "endDate",
-                  "value": "2026-12-31T23:59:59Z",
-                  "description": "Fecha fin (ISO 8601)",
-                  "disabled": true
+                  "key": "pageSize",
+                  "value": "15"
                 }
               ]
             },
-            "description": "Lista todas las facturas con filtros opcionales. Requiere autenticación."
+            "description": "Filtra facturas por estado con paginación."
+          },
+          "response": []
+        },
+        {
+          "name": "Filter Invoices by Date Range",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/invoices?startDate=2026-01-01&endDate=2026-01-31&page=1&pageSize=20",
+              "host": ["{{base_url}}"],
+              "path": ["api", "invoices"],
+              "query": [
+                {
+                  "key": "startDate",
+                  "value": "2026-01-01"
+                },
+                {
+                  "key": "endDate",
+                  "value": "2026-01-31"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "Filtra facturas por rango de fechas."
+          },
+          "response": []
+        },
+        {
+          "name": "Search Invoices by Customer",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/invoices?search=Juan&page=1&pageSize=10",
+              "host": ["{{base_url}}"],
+              "path": ["api", "invoices"],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "Juan",
+                  "description": "Buscar por nombre, documento, dirección o barrio"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Busca facturas por información del cliente."
+          },
+          "response": []
+        },
+        {
+          "name": "Filter Invoices - Advanced",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/invoices?status=PAID&origin=WEB_ORDER&paymentMethod=TRANSFER&city=Bogotá&page=1&pageSize=25",
+              "host": ["{{base_url}}"],
+              "path": ["api", "invoices"],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "PAID"
+                },
+                {
+                  "key": "origin",
+                  "value": "WEB_ORDER"
+                },
+                {
+                  "key": "paymentMethod",
+                  "value": "TRANSFER"
+                },
+                {
+                  "key": "city",
+                  "value": "Bogotá"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "25"
+                }
+              ]
+            },
+            "description": "Combina múltiples filtros para búsqueda avanzada."
           },
           "response": []
         },

@@ -47,10 +47,30 @@ export const deleteProductSchema = z.object({
 // Schema para query de listado
 export const listProductsSchema = z.object({
   query: z.object({
+    // Filtros
     isActive: z
       .string()
       .optional()
       .transform(val => val === 'true'),
+    search: z.string().optional(), // Búsqueda por código o descripción
+    minPrice: z
+      .string()
+      .optional()
+      .transform(val => (val ? parseFloat(val) : undefined)),
+    maxPrice: z
+      .string()
+      .optional()
+      .transform(val => (val ? parseFloat(val) : undefined)),
+
+    // Paginación
+    page: z
+      .string()
+      .optional()
+      .transform(val => (val ? parseInt(val) : 1)),
+    pageSize: z
+      .string()
+      .optional()
+      .transform(val => (val ? parseInt(val) : 10)),
   }),
 });
 

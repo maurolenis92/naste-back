@@ -83,32 +83,80 @@ Authorization: Bearer <cognito_access_token>
 
 ## API Endpoints
 
+### Paginación y Filtros
+
+Los endpoints de listado de productos y facturas soportan paginación y filtros avanzados. Ver [PAGINATION_AND_FILTERS.md](./PAGINATION_AND_FILTERS.md) y [POSTMAN_PAGINATION_EXAMPLES.md](./POSTMAN_PAGINATION_EXAMPLES.md) para documentación completa.
+
+#### Respuesta Paginada
+
+Todos los endpoints de listado retornan el siguiente formato:
+
+```json
+{
+  "data": [...],
+  "pagination": {
+    "currentPage": 1,
+    "pageSize": 10,
+    "totalItems": 150,
+    "totalPages": 15,
+    "hasNextPage": true,
+    "hasPreviousPage": false,
+    "nextPage": 2,
+    "previousPage": null
+  }
+}
+```
+
+#### Parámetros Comunes
+
+- `page` (default: 1): Número de página
+- `pageSize` (default: 10): Items por página
+
+---
+
 ### Products
 
 #### GET `/api/products`
 
-Lista todos los productos.
+Lista todos los productos con paginación y filtros.
 
 **Query params:**
 
+- `page` (opcional, default: 1): Número de página
+- `pageSize` (opcional, default: 10): Items por página
 - `isActive` (boolean, opcional): Filtrar por estado activo
+- `search` (string, opcional): Buscar por código o descripción
+- `minPrice` (number, opcional): Precio mínimo
+- `maxPrice` (number, opcional): Precio máximo
 
 **Response:**
 
 ```json
-[
-  {
-    "id": "uuid",
-    "code": "PROD001",
-    "description": "Producto ejemplo",
-    "price": 25000,
-    "stock": 100,
-    "imageUrl": "https://...",
-    "isActive": true,
-    "createdAt": "2026-01-06T...",
-    "updatedAt": "2026-01-06T..."
+{
+  "data": [
+    {
+      "id": "uuid",
+      "code": "PROD001",
+      "description": "Producto ejemplo",
+      "price": 25000,
+      "stock": 100,
+      "imageBase64": null,
+      "isActive": true,
+      "createdAt": "2026-01-06T...",
+      "updatedAt": "2026-01-06T..."
+    }
+  ],
+  "pagination": {
+    "currentPage": 1,
+    "pageSize": 10,
+    "totalItems": 45,
+    "totalPages": 5,
+    "hasNextPage": true,
+    "hasPreviousPage": false,
+    "nextPage": 2,
+    "previousPage": null
   }
-]
+}
 ```
 
 #### GET `/api/products/:id`
@@ -184,44 +232,62 @@ Desactiva un producto (soft delete).
 
 #### GET `/api/invoices`
 
-Lista todas las facturas.
+Lista todas las facturas con paginación y filtros.
 
 **Query params:**
 
+- `page` (opcional, default: 1): Número de página
+- `pageSize` (opcional, default: 10): Items por página
 - `status` (InvoiceStatus, opcional): PENDING | PAID | DELIVERED | CANCELLED
-- `startDate` (datetime, opcional): Fecha inicio
-- `endDate` (datetime, opcional): Fecha fin
+- `startDate` (datetime, opcional): Fecha inicio (ISO 8601)
+- `endDate` (datetime, opcional): Fecha fin (ISO 8601)
 - `createdById` (uuid, opcional): Filtrar por usuario creador
+- `search` (string, opcional): Buscar en cliente, documento, dirección o barrio
+- `origin` (InvoiceOrigin, opcional): STORE | PHONE_ORDER | WEB_ORDER
+- `paymentMethod` (PaymentMethod, opcional): CASH | CARD | TRANSFER | NEQUI | DAVIPLATA
+- `city` (string, opcional): Filtrar por ciudad
 
 **Response:**
 
 ```json
-[
-  {
-    "id": "uuid",
-    "status": "PENDING",
-    "origin": "INSTAGRAM",
-    "paymentMethod": "TRANSFER",
-    "customerName": "Juan Pérez",
-    "customerIdDoc": "123456789",
-    "customerPhone": "+57300123456",
-    "customerEmail": "juan@example.com",
-    "city": "Bogotá",
-    "neighborhood": "Chapinero",
-    "address": "Calle 123 #45-67",
-    "total": 75000,
-    "invoiceDate": "2026-01-06T...",
-    "deliveryDate": "2026-01-08T...",
-    "items": [...],
-    "createdBy": {
+{
+  "data": [
+    {
       "id": "uuid",
-      "name": "Admin",
-      "email": "admin@naste.com"
-    },
-    "createdAt": "2026-01-06T...",
-    "updatedAt": "2026-01-06T..."
+      "status": "PENDING",
+      "origin": "INSTAGRAM",
+      "paymentMethod": "TRANSFER",
+      "customerName": "Juan Pérez",
+      "customerIdDoc": "123456789",
+      "customerPhone": "+57300123456",
+      "customerEmail": "juan@example.com",
+      "city": "Bogotá",
+      "neighborhood": "Chapinero",
+      "address": "Calle 123 #45-67",
+      "total": 75000,
+      "invoiceDate": "2026-01-06T...",
+      "deliveryDate": "2026-01-08T...",
+      "items": [...],
+      "createdBy": {
+        "id": "uuid",
+        "name": "Admin",
+        "email": "admin@naste.com"
+      },
+      "createdAt": "2026-01-06T...",
+      "updatedAt": "2026-01-06T..."
+    }
+  ],
+  "pagination": {
+    "currentPage": 1,
+    "pageSize": 10,
+    "totalItems": 230,
+    "totalPages": 23,
+    "hasNextPage": true,
+    "hasPreviousPage": false,
+    "nextPage": 2,
+    "previousPage": null
   }
-]
+}
 ```
 
 #### GET `/api/invoices/:id`
