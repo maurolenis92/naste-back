@@ -29,15 +29,22 @@ jobs:
           username: ${{ secrets.USERNAME }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
+            # Entrar a la carpeta
             cd /home/ubuntu/api
 
             # 1. Instalar dependencias
             npm install
 
-            # 2. CARGAR VARIABLES Y GENERAR PRISMA
-            # Usamos 'export' para que el compilador vea la DATABASE_URL
-            export $(grep -v '^#' .env | xargs)
+            # 2. Cargar variables de entorno (con verificación de ruta)
+            if [ -f .env ]; then
+              export $(grep -v '^#' .env | xargs)
+              echo "✅ Archivo .env cargado"
+            else
+              echo "❌ ERROR: Archivo .env no encontrado en $(pwd)"
+              exit 1
+            fi
 
+            # 3. Prisma y Build (Ahora con las variables cargadas)
             echo "🔧 Generating Prisma Client..."
             npx prisma generate
 
@@ -45,9 +52,10 @@ jobs:
             npx prisma migrate deploy
 
             echo "🔨 Building TypeScript..."
+            # Usamos skipLibCheck por si hay errores en carpetas externas
             npm run build
 
-            # 3. REINICIAR PM2
+            # 4. Reiniciar PM2
             pm2 restart api --update-env || pm2 start dist/index.js --name "api"
 
             echo "✅ Despliegue completado con éxito"
